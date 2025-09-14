@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Install Me 🎉</title>
 
-  <!-- PWA manifest + theme -->
   <link rel="manifest" href="/Csvibe/manifest.webmanifest">
   <meta name="theme-color" content="#111827">
   <link rel="apple-touch-icon" href="/Csvibe/icon-192.png">
@@ -13,60 +12,104 @@
   <style>
     body { font-family: system-ui, sans-serif; margin:0; padding:2rem; background:#111827; color:#f9fafb; }
     h1 { margin-top:0; }
-    .banner { background:#1f2937; padding:1rem; border-radius:12px; margin-top:2rem; }
+    .banner, .ios { background:#1f2937; padding:1rem; border-radius:12px; margin-top:1rem; }
     button { padding:0.6rem 1rem; border:none; border-radius:8px; font-weight:600; }
     #installBtn { background:#10b981; color:#03251c; }
     .ghost { background:transparent; color:#f9fafb; border:1px solid #374151; margin-left:8px; }
     .hide { display:none; }
+    .debug { font-size:12px; opacity:.8; margin-top:1rem; line-height:1.4; }
+    code { background:#111827; padding:0 .25rem; border-radius:4px; }
   </style>
 </head>
 <body>
   <h1>Install Me 🎉</h1>
   <p>This is a PWA demo hosted on GitHub Pages.</p>
 
-  <!-- Install banner -->
+  <!-- Android/Chromium install banner -->
   <div id="banner" class="banner hide">
-    <p>Add this app to your home screen for quicker access.</p>
+    <p><strong>Add to Home Screen?</strong> Install the app for quicker access.</p>
     <button id="installBtn">Install</button>
     <button id="dismissBtn" class="ghost">Later</button>
   </div>
 
+  <!-- iOS helper -->
+  <div id="ios" class="ios hide">
+    <p><strong>Add to Home Screen on iOS</strong><br>
+       Tap <em>Share</em> → <em>Add to Home Screen</em>.</p>
+    <button id="dismissIOS" class="ghost">Got it</button>
+  </div>
+
+  <div id="debug" class="debug"></div>
+
   <script>
-    // Register service worker (project site paths)
+    const log = (msg) => {
+      console.log(msg);
+      document.getElementById('debug').innerHTML += msg + '<br>';
+    };
+
+    // Register SW (project path)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/Csvibe/sw.js').catch(console.error);
+      navigator.serviceWorker.register('/Csvibe/sw.js')
+        .then(reg => log('SW registered: ' + (reg.scope || '(no scope)')))
+        .catch(e => log('SW register error: ' + e));
+    } else {
+      log('No serviceWorker support');
     }
 
-    let deferredPrompt;
+    const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = () =>
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      window.navigator.standalone === true;
+
     const banner = document.getElementById('banner');
     const installBtn = document.getElementById('installBtn');
     const dismissBtn = document.getElementById('dismissBtn');
+    const ios = document.getElementById('ios');
 
-    // Show custom banner when page is installable
+    // iOS fallback
+    window.addEventListener('load', () => {
+      if (isIOS() && !isStandalone()) {
+        ios.classList.remove('hide');
+        log('iOS detected: using Share → Add to Home Screen');
+      }
+    });
+    document.getElementById('dismissIOS').addEventListener('click', () => ios.classList.add('hide'));
+
+    // Android/Chromium A2HS
+    let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
       banner.classList.remove('hide');
+      log('beforeinstallprompt fired — app is installable');
     });
 
-    // Button tap triggers the native prompt
     installBtn.addEventListener('click', async () => {
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      console.log('Install outcome:', outcome);
+      log('Install choice: ' + outcome);
       deferredPrompt = null;
       banner.classList.add('hide');
     });
 
-    dismissBtn.addEventListener('click', () => {
-      banner.classList.add('hide');
-    });
+    dismissBtn.addEventListener('click', () => banner.classList.add('hide'));
 
     window.addEventListener('appinstalled', () => {
-      console.log('App installed!');
-      banner.classList.add('hide');
+      log('App installed event received');
+      banner.classList.add('hide'); ios.classList.add('hide');
     });
+
+    // Extra visibility on SW control
+    navigator.serviceWorker?.ready.then(() => {
+      log('SW ready; controller present: ' + !!navigator.serviceWorker.controller);
+      if (!navigator.serviceWorker.controller) {
+        log('Tip: after first register, reload once so the page is controlled by SW.');
+      }
+    });
+
+    // Show some environment info
+    log('UA: ' + navigator.userAgent);
   </script>
 </body>
 </html>
