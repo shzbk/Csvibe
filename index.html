@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Install Me 🎉</title>
 
-  <!-- manifest + theme -->
-  <link rel="manifest" href="/REPO/manifest.webmanifest">
+  <!-- PWA manifest + theme -->
+  <link rel="manifest" href="/Csvibe/manifest.webmanifest">
   <meta name="theme-color" content="#111827">
-  <link rel="apple-touch-icon" href="/REPO/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/Csvibe/icon-192.png">
 
   <style>
     body { font-family: system-ui, sans-serif; margin:0; padding:2rem; background:#111827; color:#f9fafb; }
@@ -32,9 +32,9 @@
   </div>
 
   <script>
-    // register service worker
+    // Register service worker (project site paths)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/REPO/sw.js').catch(console.error);
+      navigator.serviceWorker.register('/Csvibe/sw.js').catch(console.error);
     }
 
     let deferredPrompt;
@@ -42,12 +42,14 @@
     const installBtn = document.getElementById('installBtn');
     const dismissBtn = document.getElementById('dismissBtn');
 
+    // Show custom banner when page is installable
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
       banner.classList.remove('hide');
     });
 
+    // Button tap triggers the native prompt
     installBtn.addEventListener('click', async () => {
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
@@ -63,6 +65,7 @@
 
     window.addEventListener('appinstalled', () => {
       console.log('App installed!');
+      banner.classList.add('hide');
     });
   </script>
 </body>
